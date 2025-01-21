@@ -14,10 +14,10 @@ img = Image.open('assets/shopping.png')
 st.sidebar.image(img)
 
 # import data
-with open('dataset/data.pickle','rb') as f:
+with open('data.pickle','rb') as f:
     data = pickle.load(f)
 
-with open('dataset/rfm.pickle','rb') as g:
+with open('rfm.pickle','rb') as g:
     rfm = pickle.load(g)
 
 
@@ -85,6 +85,8 @@ with col2:
     st.metric("Total Revenue", value=formatted_revenue)
 
 st.subheader('Capaian Penjualan')
+st.write("Visualisasi capaian penjualan berdasarkan harian, status, wilayah, dan produk.")
+
 # Mengubah 'order_date' menjadi format datetime
 outputs['order_date'] = pd.to_datetime(outputs['order_date'], errors='coerce')
 
@@ -133,40 +135,34 @@ st.plotly_chart(fig)
 
 
 ## Visualisasi RFM
-st.subheader('Segmentasi RFM')
-cluster_counts = rfm['Clusters'].value_counts().reset_index()
-cluster_counts.columns = ['cluster_name', 'count']
 
-fig = px.pie(
-    cluster_counts,
-    values='count',  # Jumlah
-    names='cluster_name',  # Label
-    title='Komposisi Segmen Pelanggan',
-    labels={'cluster_name': 'Nama Klaster'},
-    hole=0.3,  # Opsional: Membuat donut chart
-    width=500,
-    height=500,
-    color='cluster_name',  # Kolom untuk mapping warna
-    color_discrete_map={
-        'Pelanggan Loyal Dormant': 'green',
-        'Pelanggan Potensial': 'lightgreen',
-        'Pelanggan Baru atau Tidak Aktif': 'yellow',
-        'Pelanggan Tidak Aktif': 'red'
-    }
-)
-st.plotly_chart(fig)
+st.subheader("Top 5 Customers Based on RFM Parameters")
+st.write("Visualisasi 5 pelanggan terbaik berdasarkan Recency, Frequency, dan Monetary.")
 
+# Fungsi untuk mendapatkan top 5 pelanggan
+def get_top_5(rfm, column, ascending=True):
+    return rfm.nsmallest(5, column) if ascending else rfm.nlargest(5, column).reset_index()
 
-# karakteristik segmen
-car = rfm.groupby('Clusters').agg(['count', 'mean'])
+# Parameter RFM
+parameters = {
+    "Recency": {"ascending": True},
+    "Frequency": {"ascending": False},
+    "Monetary": {"ascending": False}
+}
 
-st.markdown(
-    """
-    <h3 style="font-size: 16px; font-weight: bold;">
-    Karakteristik pada setiap Segmen Pelanggan
-    </h3>
-    """,
-    unsafe_allow_html=True
-)
-
-st.write(car)
+# Plot untuk setiap parameter
+for param, config in parameters.items():
+    top_5 = get_top_5(rfm, param, config["ascending"])
+    fig = px.bar(
+        top_5,
+        x=param,          # Parameter (Recency, Frequency, atau Monetary) sebagai x-axis
+        y="customer_id",  # Gunakan customer_id sebagai y-axis
+        text=param,
+        title=f"Top 5 Customers by {param}",
+        labels={"customer_id": "Customer ID", param: param},
+        color="customer_id",
+        orientation='h'   # Bar chart horizontal
+    )
+    fig.update_traces(texttemplate='%{text}', textposition='inside')
+    fig.update_layout(xaxis_title=param, yaxis_title="Customer ID", showlegend=False)
+    st.plotly_chart(fig)

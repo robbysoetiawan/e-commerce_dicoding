@@ -4,3 +4,8 @@ pandas
 plotly
 Pillow
 Babel
+matplotlib
+seaborn
+numpy
+sklearn
+warnings
